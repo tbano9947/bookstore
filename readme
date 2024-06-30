@@ -1,0 +1,451 @@
+## creating database
+CREATE DATABASE bookstore;
+## Authors table
+| Column Name      | Data Type             | Constraints             |
+| ---------------- | --------------------- | ----------------------- |
+| Author_id        | integer               | PRIMARY KEY             |
+| Name             | character varying     | NOT NULL                |
+| genre            | character varying     |                         |
+| books_published  | integer               |                         |
+| last_published   | date                  |                         |
+
+## Books table
+| Column Name     | Data Type             | Constraints             |
+| --------------- | --------------------- | ----------------------- |
+| Book_id         | integer               | PRIMARY KEY             |
+| title           | character varying     | NOT NULL                |
+| author_id       | integer               | FOREIGN KEY REFERENCES Authors(Author_id) |
+| genre           | character varying     |                         |
+| price           | numeric               |                         |
+| rating          | numeric               |                         |
+| published_date  | date                  |                         |
+
+## Customers table
+| Column Name      | Data Type             | Constraints             |
+| ---------------- | --------------------- | ----------------------- |
+| Customer_id      | integer               | PRIMARY KEY             |
+| Name             | character varying     | NOT NULL                |
+| Email            | character varying     | NOT NULL                |
+| Total_spent      | numeric               | NOT NULL                |
+| Last_purchased   | date                  | NOT NULL                |
+
+## review table
+| Column Name   | Data Type             | Constraints                               |
+| ------------- | --------------------- | ----------------------------------------- |
+| Review_id     | integer               | PRIMARY KEY                               |
+| book_id       | integer               | FOREIGN KEY REFERENCES Books(Book_id)     |
+| customer_id   | integer               | FOREIGN KEY REFERENCES Customers(Customer_id) |
+| rating        | numeric               |                                         |
+| review_text   | text                  |                                         |
+| review_date   | date                  |                                         |
+
+
+
+## table authors
+CREATE TABLE IF NOT EXISTS public."Authors"
+(
+    "Author_id" integer NOT NULL DEFAULT nextval('authors_author_id_seq'::regclass),
+    "Name" character varying COLLATE pg_catalog."default" NOT NULL,
+    genre character varying COLLATE pg_catalog."default" NOT NULL,
+    books_published integer NOT NULL,
+    last_published date NOT NULL,
+    CONSTRAINT "Authors_pkey" PRIMARY KEY ("Author_id")
+);
+
+## table books
+
+CREATE TABLE IF NOT EXISTS public."Books"
+(
+    "Book_id" integer NOT NULL DEFAULT nextval('books_book_id_seq'::regclass),
+    title character varying COLLATE pg_catalog."default" NOT NULL,
+    author_id integer NOT NULL,
+    genre character varying COLLATE pg_catalog."default" NOT NULL,
+    price numeric NOT NULL,
+    rating numeric,
+    published_date date NOT NULL,
+    CONSTRAINT "Books_pkey" PRIMARY KEY ("Book_id"),
+    CONSTRAINT "Books_author_id_fkey" FOREIGN KEY (author_id)
+        REFERENCES public."Authors" ("Author_id") MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+);
+
+## table customers
+
+CREATE TABLE IF NOT EXISTS public."Customers"
+(
+    "Customer_id" integer NOT NULL DEFAULT nextval('customers_customer_id_seq'::regclass),
+    "Name" character varying COLLATE pg_catalog."default" NOT NULL,
+    "Email" character varying COLLATE pg_catalog."default" NOT NULL,
+    "Total_spent" numeric NOT NULL,
+    "Last_purchased" date NOT NULL,
+    CONSTRAINT "Customers_pkey" PRIMARY KEY ("Customer_id")
+);
+
+## table reviews
+
+CREATE TABLE IF NOT EXISTS public."Review"
+(
+    "Review_id" integer NOT NULL DEFAULT nextval('review_review_id_seq'::regclass),
+    book_id integer NOT NULL,
+    customer_id integer NOT NULL,
+    rating numeric NOT NULL,
+    review_text text COLLATE pg_catalog."default",
+    review_date date NOT NULL,
+    CONSTRAINT "Review_pkey" PRIMARY KEY ("Review_id"),
+    CONSTRAINT "Review_book_id_fkey" FOREIGN KEY (book_id)
+        REFERENCES public."Books" ("Book_id") MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT "Review_customer_id_fkey" FOREIGN KEY (customer_id)
+        REFERENCES public."Customers" ("Customer_id") MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+);
+
+## Insert queries
+
+-- Insert additional authors
+INSERT INTO public."Authors" ("Name", "genre", "books_published", "last_published")
+VALUES 
+    ('J.K. Rowling', 'Fantasy', 10, '2020-05-15'),
+    ('George R.R. Martin', 'Fantasy', 7, '2018-09-20'),
+    ('Brandon Sanderson', 'Fantasy', 12, '2021-03-10'),
+    ('Terry Pratchett', 'Fantasy', 5, '2015-11-25'), -- Adjusted to meet the requirement
+    ('Ursula K. Le Guin', 'Fantasy', 8, '2013-08-15'), -- Added new author
+    ('Patrick Rothfuss', 'Fantasy', 6, '2014-07-22'), -- Added new author
+    ('Robin Hobb', 'Fantasy', 9, '2017-10-30'), -- Added new author
+    ('Neil Gaiman', 'Fantasy', 11, '2019-12-05'); -- Added new author
+
+-- Insert additional customers
+INSERT INTO public."Customers" ("Name", "Email", "Total_spent", "Last_purchased")
+VALUES 
+    ('Alice Johnson', 'alice@example.com', 1500, '2023-06-01'),
+    ('Bob Smith', 'bob@example.com', 2000, '2023-05-15'),
+    ('Charlie Brown', 'charlie@example.com', 1200, '2023-06-10'),
+    ('Eve White', 'eve@example.com', 1800, '2023-04-20'),
+    ('David Lee', 'david@example.com', 2500, '2023-06-20'), -- Added new customer
+    ('Emily Brown', 'emily@example.com', 2200, '2023-05-05'), -- Added new customer
+    ('Frank Miller', 'frank@example.com', 1700, '2023-06-25'), -- Added new customer
+    ('Grace Turner', 'grace@example.com', 1400, '2023-04-15'); -- Added new customer
+
+
+INSERT INTO public."Books" ("title", "author_id", "genre", "price", "rating", "published_date")
+VALUES 
+    ('Harry Potter and the Philosopher''s Stone', 1, 'Fantasy', 19.99, 4.5, '1997-06-26'),
+    ('A Game of Thrones', 2, 'Fantasy', 24.99, 4.8, '1996-08-06'),
+    ('Mistborn: The Final Empire', 3, 'Fantasy', 17.99, 4.7, '2006-07-17'),
+    ('Good Omens', 4, 'Fantasy', 15.99, 4.6, '1990-05-01'),
+    ('The Left Hand of Darkness', 1, 'Fantasy', 18.99, 4.4, '1969-01-01'), -- Using existing author_id (1)
+    ('The Name of the Wind', 3, 'Fantasy', 16.99, 4.9, '2007-03-27'), -- Using existing author_id (3)
+    ('Assassin''s Apprentice', 6, 'Fantasy', 14.99, 4.7, '1995-04-01'); -- Using existing author_id (6)
+
+
+INSERT INTO public."Review" ("book_id", "customer_id", "rating", "review_text", "review_date")
+VALUES 
+    (1, 1, 5, 'A wonderful start to a magical series!', '2023-06-05'),
+    (2, 2, 4.5, 'Epic tale with complex characters.', '2023-05-20'),
+    (3, 3, 4.8, 'Brilliant magic system and plot twists.', '2023-06-15'),
+    (4, 4, 4.7, 'Hilarious and thought-provoking.', '2023-04-25'),
+    (1, 1, 4.4, 'Innovative storytelling and themes.', '2023-06-10'), -- Using existing book_id (1)
+    (2, 2, 4.9, 'Captivating and beautifully written.', '2023-05-30'), -- Using existing book_id (2)
+    (3, 3, 4.7, 'Engaging characters and intricate plot.', '2023-06-20'), -- Using existing book_id (3)
+    (4, 4, 4.6, 'A modern fantasy masterpiece.', '2023-04-15'); -- Using existing book_id (4)
+
+## sql queries for the listed requirements
+## Power writers (authors) with more than 5 books in the same genre published within the last 5 years
+SELECT "Name", "genre", "books_published", "last_published"
+FROM public."Authors"
+WHERE "genre" = 'Fantasy'  -- Replace 'Fantasy' with the desired genre
+  AND "books_published" > 5 -- Replace 5 with X (number of books threshold)
+  AND "last_published" >= NOW() - INTERVAL '5 years'; 
+
+## Loyal Customers who have spent more than 2000 dollars in the last year
+SELECT "Name", "Email", "Total_spent", "Last_purchased"
+FROM public."Customers"
+WHERE "Total_spent" > 2000
+  AND "Last_purchased" >= DATE_TRUNC('year', NOW() - INTERVAL '1 year');
+  
+## Well Reviewed books that have a better user rating than average
+SELECT "title", "genre", "price", "rating", "published_date"
+FROM public."Books"
+WHERE "rating" > (SELECT AVG("rating") FROM public."Books")
+ORDER BY "rating" DESC;
+
+## The most popular genre by sales
+SELECT "genre", SUM("price") AS "total_sales"
+FROM public."Books"
+GROUP BY "genre"
+ORDER BY "total_sales" DESC
+LIMIT 1;
+
+## Query for 10 most recent posted reviews by Customers
+SELECT "Review"."review_text", "Review"."review_date", "Customers"."Name" AS "customer_name"
+FROM public."Review"
+JOIN public."Customers" ON "Review"."customer_id" = "Customers"."Customer_id"
+ORDER BY "Review"."review_date" DESC
+LIMIT 10;
+
+##  1 complete set of DDL/DML For one of the table authors and perform CRUD on all the   values of the table
+## create table DDL command 
+CREATE TABLE IF NOT EXISTS public."Authors"
+(
+    "Author_id" serial PRIMARY KEY,
+    "Name" character varying(100) NOT NULL,
+    "Genre" character varying(50),
+    "Books_published" integer,
+    "Last_published" date
+);
+
+## Alter table 
+ALTER TABLE public."Authors"
+ADD COLUMN "Nationality" character varying(50);
+
+## Insert data into table
+INSERT INTO public."Authors" ("Name", "Genre", "Books_published", "Last_published")
+VALUES 
+    ('J.K. Rowling', 'Fantasy', 10, '2020-05-15'),
+    ('George R.R. Martin', 'Fantasy', 7, '2018-09-20'),
+    ('Brandon Sanderson', 'Fantasy', 12, '2021-03-10'),
+    ('Terry Pratchett', 'Fantasy', 5, '2015-11-25'),
+    ('Ursula K. Le Guin', 'Fantasy', 8, '2013-08-15'),
+    ('Patrick Rothfuss', 'Fantasy', 6, '2014-07-22'),
+    ('Robin Hobb', 'Fantasy', 9, '2017-10-30'),
+    ('Neil Gaiman', 'Fantasy', 11, '2019-12-05');
+    
+## select data from table DML Commands
+SELECT * FROM public."Authors";
+
+## Update data in the table 
+UPDATE public."Authors"
+SET "books_published" = 13,
+    "last_published" = '2022-01-10'
+WHERE "Author_id" = 3; -- Updating Brandon Sanderson's details
+
+## Delete data from table
+DELETE FROM public."Authors"
+WHERE "Author_id" = 7; -- Deleting Robin Hobb
+
+
+## Typescript 
+## Define interfaces for tables
+interface Author {
+  author_id: number;
+  name: string;
+  genre: string;
+  books_published: number;
+  last_published: Date;
+}
+
+interface Book {
+  book_id: number;
+  title: string;
+  author_id: number;
+  genre: string;
+  price: number;
+  rating?: number;
+  published_date: Date;
+}
+
+interface Customer {
+  customer_id: number;
+  name: string;
+  email: string;
+  total_spent: number;
+  last_purchased: Date;
+}
+
+interface Review {
+  review_id: number;
+  book_id: number;
+  customer_id: number;
+  rating: number;
+  review_text?: string;
+  review_date: Date;
+}
+
+## Function to execute SQL queries
+async function query(text: string, params?: any[]): Promise<QueryResult<any>> {
+  const start = Date.now();
+  const res = await pool.query(text, params);
+  const duration = Date.now() - start;
+  console.log('Executed query:', { text, duration, rows: res.rowCount });
+  return res;
+}
+
+## CRUD operations for Authors table
+const Authors = {
+  async getAllAuthors(): Promise<Author[]> {
+    const { rows } = await query('SELECT * FROM public."Authors"');
+    return rows;
+  },
+
+  async getAuthorById(authorId: number): Promise<Author | null> {
+    const { rows } = await query('SELECT * FROM public."Authors" WHERE author_id = $1', [authorId]);
+    return rows[0] || null;
+  },
+
+  async createAuthor(newAuthor: Author): Promise<void> {
+    await query(
+      'INSERT INTO public."Authors" (name, genre, books_published, last_published) VALUES ($1, $2, $3, $4)',
+      [newAuthor.name, newAuthor.genre, newAuthor.books_published, newAuthor.last_published]
+    );
+  },
+
+  async updateAuthor(authorId: number, updatedAuthor: Author): Promise<void> {
+    await query(
+      'UPDATE public."Authors" SET name = $1, genre = $2, books_published = $3, last_published = $4 WHERE author_id = $5',
+      [updatedAuthor.name, updatedAuthor.genre, updatedAuthor.books_published, updatedAuthor.last_published, authorId]
+    );
+  },
+
+  async deleteAuthor(authorId: number): Promise<void> {
+    await query('DELETE FROM public."Authors" WHERE author_id = $1', [authorId]);
+  },
+};
+
+## CRUD operations for Books table
+const Books = {
+  async getAllBooks(): Promise<Book[]> {
+    const { rows } = await query('SELECT * FROM public."Books"');
+    return rows;
+  },
+
+  async getBookById(bookId: number): Promise<Book | null> {
+    const { rows } = await query('SELECT * FROM public."Books" WHERE book_id = $1', [bookId]);
+    return rows[0] || null;
+  },
+
+  async createBook(newBook: Book): Promise<void> {
+    await query(
+      'INSERT INTO public."Books" (title, author_id, genre, price, rating, published_date) VALUES ($1, $2, $3, $4, $5, $6)',
+      [newBook.title, newBook.author_id, newBook.genre, newBook.price, newBook.rating, newBook.published_date]
+    );
+  },
+
+  async updateBook(bookId: number, updatedBook: Book): Promise<void> {
+    await query(
+      'UPDATE public."Books" SET title = $1, author_id = $2, genre = $3, price = $4, rating = $5, published_date = $6 WHERE book_id = $7',
+      [
+        updatedBook.title,
+        updatedBook.author_id,
+        updatedBook.genre,
+        updatedBook.price,
+        updatedBook.rating,
+        updatedBook.published_date,
+        bookId,
+      ]
+    );
+  },
+
+  async deleteBook(bookId: number): Promise<void> {
+    await query('DELETE FROM public."Books" WHERE book_id = $1', [bookId]);
+  },
+};
+
+## CRUD operations for Customers table
+const Customers = {
+  async getAllCustomers(): Promise<Customer[]> {
+    const { rows } = await query('SELECT * FROM public."Customers"');
+    return rows;
+  },
+
+  async getCustomerById(customerId: number): Promise<Customer | null> {
+    const { rows } = await query('SELECT * FROM public."Customers" WHERE customer_id = $1', [customerId]);
+    return rows[0] || null;
+  },
+
+  async createCustomer(newCustomer: Customer): Promise<void> {
+    await query(
+      'INSERT INTO public."Customers" (name, email, total_spent, last_purchased) VALUES ($1, $2, $3, $4)',
+      [newCustomer.name, newCustomer.email, newCustomer.total_spent, newCustomer.last_purchased]
+    );
+  },
+
+  async updateCustomer(customerId: number, updatedCustomer: Customer): Promise<void> {
+    await query(
+      'UPDATE public."Customers" SET name = $1, email = $2, total_spent = $3, last_purchased = $4 WHERE customer_id = $5',
+      [updatedCustomer.name, updatedCustomer.email, updatedCustomer.total_spent, updatedCustomer.last_purchased, customerId]
+    );
+  },
+
+  async deleteCustomer(customerId: number): Promise<void> {
+    await query('DELETE FROM public."Customers" WHERE customer_id = $1', [customerId]);
+  },
+};
+
+## CRUD operations for Review table
+const Reviews = {
+  async getAllReviews(): Promise<Review[]> {
+    const { rows } = await query('SELECT * FROM public."Review"');
+    return rows;
+  },
+
+  async getReviewById(reviewId: number): Promise<Review | null> {
+    const { rows } = await query('SELECT * FROM public."Review" WHERE review_id = $1', [reviewId]);
+    return rows[0] || null;
+  },
+
+  async createReview(newReview: Review): Promise<void> {
+    await query(
+      'INSERT INTO public."Review" (book_id, customer_id, rating, review_text, review_date) VALUES ($1, $2, $3, $4, $5)',
+      [newReview.book_id, newReview.customer_id, newReview.rating, newReview.review_text, newReview.review_date]
+    );
+  },
+
+  async updateReview(reviewId: number, updatedReview: Review): Promise<void> {
+    await query(
+      'UPDATE public."Review" SET book_id = $1, customer_id = $2, rating = $3, review_text = $4, review_date = $5 WHERE review_id = $6',
+      [
+        updatedReview.book_id,
+        updatedReview.customer_id,
+        updatedReview.rating,
+        updatedReview.review_text,
+        updatedReview.review_date,
+        reviewId,
+      ]
+    );
+  },
+
+  async deleteReview(reviewId: number): Promise<void> {
+    await query('DELETE FROM public."Review" WHERE review_id = $1', [reviewId]);
+  },
+};
+
+## Example usage for fetching:
+(async () => {
+  try {
+    const allAuthors = await Authors.getAllAuthors();
+    console.log('All Authors:', allAuthors);
+    const allBooks = await Books.getAllBooks();
+    console.log('All Books:', allBooks);
+    const allCustomers = await Customers.getAllCustomers();
+    console.log('All Customers:', allCustomers);
+    const allReviews = await Reviews.getAllReviews();
+    console.log('All Reviews:', allReviews);
+
+    
+    const newAuthor: Author = {
+      author_id: 9, // Auto-generated by PostgreSQL sequence
+      name: 'New Author',
+      genre: 'Fantasy',
+      books_published: 1,
+      last_published: new Date('2023-01-01'),
+    };
+    await Authors.createAuthor(newAuthor);
+    console.log('New Author created.');
+    const updatedBook: Book = {
+      book_id: 3,
+      title: 'Updated Book Title',
+      author_id: 3,
+      genre: 'Fantasy',
+      price: 29.99,
+      rating: 4.9,
+      published_date: new Date('2023-06-01'),
+    };
+    await Books.updateBook(3, updatedBook);
+    console.log('Book updated.');
+    await Customers.deleteCustomer(5);
+    console.log('Customer deleted.'); } catch (error) {
+    console.error('Error executing database operation:', error);} finally {
+    await pool.end();}})();
