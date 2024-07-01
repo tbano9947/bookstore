@@ -229,223 +229,116 @@ WHERE "Author_id" = 7; -- Deleting Robin Hobb
 
 ## Typescript 
 ## Define interfaces for tables
-interface Author {
-  author_id: number;
-  name: string;
-  genre: string;
-  books_published: number;
-  last_published: Date;
+// src/interface.ts
+
+// src/interface.ts
+
+export interface Authors {
+  Author_id?: number;  // "Author_id" integer NOT NULL DEFAULT nextval('authors\_author\_id\_seq'::regclass),
+  Name: string;        // "Name" character varying COLLATE pg\_catalog."default" NOT NULL,
+  genre: string;       // genre character varying COLLATE pg\_catalog."default" NOT NULL,
+  books_published: number; // books_published integer NOT NULL,
+  last_published: Date;    // last_published date NOT NULL,
 }
 
-interface Book {
-  book_id: number;
-  title: string;
-  author_id: number;
-  genre: string;
-  price: number;
-  rating?: number;
-  published_date: Date;
+export interface Books {
+  Book_id?: number;    // "Book_id" integer NOT NULL DEFAULT nextval('books\_book\_id\_seq'::regclass),
+  title: string;       // title character varying COLLATE pg\_catalog."default" NOT NULL,
+  author_id: number;   // author_id integer NOT NULL,
+  genre: string;       // genre character varying COLLATE pg\_catalog."default" NOT NULL,
+  price: number;       // price numeric NOT NULL,
+  rating?: number;     // rating numeric,
+  published_date: Date; // published_date date NOT NULL,
 }
 
-interface Customer {
-  customer_id: number;
-  name: string;
-  email: string;
-  total_spent: number;
-  last_purchased: Date;
+export interface Customers {
+  Customer_id?: number; // "Customer_id" integer NOT NULL DEFAULT nextval('customers\_customer\_id\_seq'::regclass),
+  Name: string;         // "Name" character varying COLLATE pg\_catalog."default" NOT NULL,
+  Email: string;        // "Email" character varying COLLATE pg\_catalog."default" NOT NULL,
+  Total_spent: number;  // "Total_spent" numeric NOT NULL,
+  Last_purchased: Date; // "Last_purchased" date NOT NULL,
 }
 
-interface Review {
-  review_id: number;
-  book_id: number;
-  customer_id: number;
-  rating: number;
-  review_text?: string;
-  review_date: Date;
+export interface Review {
+  Review_id?: number;  // "Review_id" integer NOT NULL DEFAULT nextval('review\_review\_id\_seq'::regclass),
+  book_id: number;     // book_id integer NOT NULL,
+  customer_id: number; // customer_id integer NOT NULL,
+  rating: number;      // rating numeric NOT NULL,
+  review_text?: string; // review_text text COLLATE pg\_catalog."default",
+  review_date: Date;   // review_date date NOT NULL,
 }
 
-## Function to execute SQL queries
-async function query(text: string, params?: any[]): Promise<QueryResult<any>> {
-  const start = Date.now();
-  const res = await pool.query(text, params);
-  const duration = Date.now() - start;
-  console.log('Executed query:', { text, duration, rows: res.rowCount });
-  return res;
+import pool from './db';
+import { Authors, Books, Customers, Review } from './interface';
+// Function to insert an author
+async function insertAuthor(author: Authors) {
+  const query = `
+    INSERT INTO public."Authors" ("Name", genre, books_published, last_published)
+    VALUES ($1, $2, $3, $4)
+    RETURNING *;
+  `;
+  const values = [author.Name, author.genre, author.books_published, author.last_published];
+  const result = await pool.query(query, values);
+  return result.rows[0];
 }
 
-## CRUD operations for Authors table
-const Authors = {
-  async getAllAuthors(): Promise<Author[]> {
-    const { rows } = await query('SELECT * FROM public."Authors"');
-    return rows;
-  },
+// Function to get all authors
+async function getAuthors() {
+  const query = `SELECT * FROM public."Authors";`;
+  const result = await pool.query(query);
+  return result.rows;
+}
 
-  async getAuthorById(authorId: number): Promise<Author | null> {
-    const { rows } = await query('SELECT * FROM public."Authors" WHERE author_id = $1', [authorId]);
-    return rows[0] || null;
-  },
+// Function to update a record in any table
+async function updateRecord(table: string, record: any, primaryKey: string, id: number) {
+  const setClause = Object.keys(record)
+    .map((key, index) => `"${key}" = $${index + 1}`)
+    .join(", ");
+  const values = Object.values(record);
 
-  async createAuthor(newAuthor: Author): Promise<void> {
-    await query(
-      'INSERT INTO public."Authors" (name, genre, books_published, last_published) VALUES ($1, $2, $3, $4)',
-      [newAuthor.name, newAuthor.genre, newAuthor.books_published, newAuthor.last_published]
-    );
-  },
+  const query = `
+    UPDATE public."${table}"
+    SET ${setClause}
+    WHERE "${primaryKey}" = $${values.length + 1}
+    RETURNING *;
+  `;
+  values.push(id);
 
-  async updateAuthor(authorId: number, updatedAuthor: Author): Promise<void> {
-    await query(
-      'UPDATE public."Authors" SET name = $1, genre = $2, books_published = $3, last_published = $4 WHERE author_id = $5',
-      [updatedAuthor.name, updatedAuthor.genre, updatedAuthor.books_published, updatedAuthor.last_published, authorId]
-    );
-  },
+  const result = await pool.query(query, values);
+  return result.rows[0];
+}
 
-  async deleteAuthor(authorId: number): Promise<void> {
-    await query('DELETE FROM public."Authors" WHERE author_id = $1', [authorId]);
-  },
-};
+// Function to delete an author
+async function deleteAuthor(author_id: number) {
+  const query = `DELETE FROM public."Authors" WHERE "Author_id" = $1;`;
+  const result = await pool.query(query, [author_id]);
+  return result.rowCount > 0;
+}
 
-## CRUD operations for Books table
-const Books = {
-  async getAllBooks(): Promise<Book[]> {
-    const { rows } = await query('SELECT * FROM public."Books"');
-    return rows;
-  },
+// Example usage
+async function main() {
+  // Insert a new author
+  const newAuthor: Authors = {
+    Name: 'Neil Gaiman',
+    genre: 'Fantasy',
+    books_published: 10,
+    last_published: new Date('2021-05-15')
+  };
+  const insertedAuthor = await insertAuthor(newAuthor);
+  console.log('Inserted Author:', insertedAuthor);
 
-  async getBookById(bookId: number): Promise<Book | null> {
-    const { rows } = await query('SELECT * FROM public."Books" WHERE book_id = $1', [bookId]);
-    return rows[0] || null;
-  },
+  // Update an author
+  const updatedAuthor: Partial<Authors> = {
+    Name: 'Neil Gaiman',
+    genre: 'Fantasy, Horror',
+    books_published: 11,
+    last_published: new Date('2022-06-20')
+  };
+  const result = await updateRecord('Authors', updatedAuthor, 'Author_id', insertedAuthor.Author_id);
+  console.log('Updated Author:', result);
 
-  async createBook(newBook: Book): Promise<void> {
-    await query(
-      'INSERT INTO public."Books" (title, author_id, genre, price, rating, published_date) VALUES ($1, $2, $3, $4, $5, $6)',
-      [newBook.title, newBook.author_id, newBook.genre, newBook.price, newBook.rating, newBook.published_date]
-    );
-  },
+  // we can similarly update books, customers, and reviews
+}
 
-  async updateBook(bookId: number, updatedBook: Book): Promise<void> {
-    await query(
-      'UPDATE public."Books" SET title = $1, author_id = $2, genre = $3, price = $4, rating = $5, published_date = $6 WHERE book_id = $7',
-      [
-        updatedBook.title,
-        updatedBook.author_id,
-        updatedBook.genre,
-        updatedBook.price,
-        updatedBook.rating,
-        updatedBook.published_date,
-        bookId,
-      ]
-    );
-  },
+main().catch(err => console.error(err));
 
-  async deleteBook(bookId: number): Promise<void> {
-    await query('DELETE FROM public."Books" WHERE book_id = $1', [bookId]);
-  },
-};
-
-## CRUD operations for Customers table
-const Customers = {
-  async getAllCustomers(): Promise<Customer[]> {
-    const { rows } = await query('SELECT * FROM public."Customers"');
-    return rows;
-  },
-
-  async getCustomerById(customerId: number): Promise<Customer | null> {
-    const { rows } = await query('SELECT * FROM public."Customers" WHERE customer_id = $1', [customerId]);
-    return rows[0] || null;
-  },
-
-  async createCustomer(newCustomer: Customer): Promise<void> {
-    await query(
-      'INSERT INTO public."Customers" (name, email, total_spent, last_purchased) VALUES ($1, $2, $3, $4)',
-      [newCustomer.name, newCustomer.email, newCustomer.total_spent, newCustomer.last_purchased]
-    );
-  },
-
-  async updateCustomer(customerId: number, updatedCustomer: Customer): Promise<void> {
-    await query(
-      'UPDATE public."Customers" SET name = $1, email = $2, total_spent = $3, last_purchased = $4 WHERE customer_id = $5',
-      [updatedCustomer.name, updatedCustomer.email, updatedCustomer.total_spent, updatedCustomer.last_purchased, customerId]
-    );
-  },
-
-  async deleteCustomer(customerId: number): Promise<void> {
-    await query('DELETE FROM public."Customers" WHERE customer_id = $1', [customerId]);
-  },
-};
-
-## CRUD operations for Review table
-const Reviews = {
-  async getAllReviews(): Promise<Review[]> {
-    const { rows } = await query('SELECT * FROM public."Review"');
-    return rows;
-  },
-
-  async getReviewById(reviewId: number): Promise<Review | null> {
-    const { rows } = await query('SELECT * FROM public."Review" WHERE review_id = $1', [reviewId]);
-    return rows[0] || null;
-  },
-
-  async createReview(newReview: Review): Promise<void> {
-    await query(
-      'INSERT INTO public."Review" (book_id, customer_id, rating, review_text, review_date) VALUES ($1, $2, $3, $4, $5)',
-      [newReview.book_id, newReview.customer_id, newReview.rating, newReview.review_text, newReview.review_date]
-    );
-  },
-
-  async updateReview(reviewId: number, updatedReview: Review): Promise<void> {
-    await query(
-      'UPDATE public."Review" SET book_id = $1, customer_id = $2, rating = $3, review_text = $4, review_date = $5 WHERE review_id = $6',
-      [
-        updatedReview.book_id,
-        updatedReview.customer_id,
-        updatedReview.rating,
-        updatedReview.review_text,
-        updatedReview.review_date,
-        reviewId,
-      ]
-    );
-  },
-
-  async deleteReview(reviewId: number): Promise<void> {
-    await query('DELETE FROM public."Review" WHERE review_id = $1', [reviewId]);
-  },
-};
-
-## Example usage for fetching:
-(async () => {
-  try {
-    const allAuthors = await Authors.getAllAuthors();
-    console.log('All Authors:', allAuthors);
-    const allBooks = await Books.getAllBooks();
-    console.log('All Books:', allBooks);
-    const allCustomers = await Customers.getAllCustomers();
-    console.log('All Customers:', allCustomers);
-    const allReviews = await Reviews.getAllReviews();
-    console.log('All Reviews:', allReviews);
-
-    
-    const newAuthor: Author = {
-      author_id: 9, // Auto-generated by PostgreSQL sequence
-      name: 'New Author',
-      genre: 'Fantasy',
-      books_published: 1,
-      last_published: new Date('2023-01-01'),
-    };
-    await Authors.createAuthor(newAuthor);
-    console.log('New Author created.');
-    const updatedBook: Book = {
-      book_id: 3,
-      title: 'Updated Book Title',
-      author_id: 3,
-      genre: 'Fantasy',
-      price: 29.99,
-      rating: 4.9,
-      published_date: new Date('2023-06-01'),
-    };
-    await Books.updateBook(3, updatedBook);
-    console.log('Book updated.');
-    await Customers.deleteCustomer(5);
-    console.log('Customer deleted.'); } catch (error) {
-    console.error('Error executing database operation:', error);} finally {
-    await pool.end();}})();
